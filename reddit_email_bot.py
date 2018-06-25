@@ -1,16 +1,39 @@
+#! python3
 import praw
 import time
 import smtplib
+import logging
 from credentials import reddit_client_id, reddit_client_secret, reddit_password, reddit_user_agent, reddit_username, email_bot_address, email_bot_password, email_user_address
 '''Reddit Bot Portion Based at r/RequestABot authored by /u/John_Yuki.
-Modification for sending e-mail and for criteria by dictionary by /u/jormono'''
+Modification for sending e-mail by /u/jormono'''
+
+logging.basicConfig(filename='reddit_message_bot_error_log.log', level=logging.INFO,
+                    format='%(asctime)s:%(levelname)s:%(message)s')
+
+def initialize():
+    try:
+        # e-mail message
+        msg = 'From: {}\nTo: {}\n***BEEP BOOP*** Initializing Stream'.format(email_bot_address, email_user_address)
+        mail = smtplib.SMTP('smtp.gmail.com', 587) # specific to gmail
+        mail.ehlo()
+        mail.starttls()
+        mail.login(email_bot_address, email_bot_password)
+        mail.sendmail(email_bot_address, email_user_address, msg.encode('utf-8'))
+        mail.quit()
+        logging.info('Sent initializing message') # This line is for testing purposes.
+    except Exception as e:
+        logging.warning(e)
+        logging.debug('email issue')
+        time.sleep(60)
+        
+initialize()
 
 # The keywords or phrases that the bot looks for.
-# changed from 2 lists to one dictionary, this should let you set search value per subreddit
 criteria = {
-    'news': ['o'],
-    'politics': ['i', 'a', 'u'],
-    'AskReddit': ['e']}
+    'AskReddit': ['e'],
+    'politics': ['i','o'],
+    'news': ['u', 'a']
+    }
 
 criteria_keys = '+'.join(criteria.keys())
 
@@ -19,8 +42,8 @@ try:
         password = reddit_password, client_id = reddit_client_id,
         client_secret = reddit_client_secret, user_agent = reddit_user_agent)
 except Exception as e:
-    print(e)
-    print('Reddit connection issue')
+    logging.warning(e)
+    logging.debug('Reddit connection issue')
     time.sleep(60)
 
 # Main program:
@@ -28,19 +51,19 @@ def send_message(submission, reddit):
     try:
         # e-mail message
         post_title = submission.title
-        if len(str(submission.title))>137: # message character limit minus length of url
-            post_title = str(post_title)[:130] + '...' # if title exceeds character limit for message this trims it up
+        if len(str(submission.title))>137:
+            post_title = str(post_title)[:130] + '...'
         msg = 'From: {}\nTo: {}\n{} \n {}'.format(email_bot_address, email_user_address, post_title, submission.shortlink)
         mail = smtplib.SMTP('smtp.gmail.com', 587) # specific to gmail
         mail.ehlo()
         mail.starttls()
         mail.login(email_bot_address, email_bot_password)
-        mail.sendmail(email_bot_address, email_user_address, msg.encode('utf-8')) # added encode uf-8 due to error that kept coming up
+        mail.sendmail(email_bot_address, email_user_address, msg.encode('utf-8'))
         mail.quit()
-        print('Sent new message') # This line is for testing purposes.
+        logging.info('Sent new message')
     except Exception as e:
-        print(e)
-        print('email issue')
+        logging.warning(e)
+        lgging.debug('email issue')
         time.sleep(60)
         
 def find_submissions():
@@ -51,11 +74,11 @@ def find_submissions():
                 for keyword in criteria[str(reddit.subreddit(str(submission.subreddit)))]:
                     if keyword.lower() in submission.title.lower() and submission.created_utc > start_time:
                         send_message(submission, reddit)
-                        break
+                        continue
     except Exception as e:
-        print(e)
-        print('Reddit search issue')
+        logging.warning(e)
+        logging.debug('Reddit search issue')
         time.sleep(60)
-
+        
 if __name__ == '__main__':
     find_submissions()
