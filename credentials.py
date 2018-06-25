@@ -11,4 +11,4 @@ email_bot_password = ''
 email_user_address = ''
 
 '''reddit_email_bot.py setup for gmail server, if not using gmail
-you will need to modify line 33 (will change if you add/remove subreddits) for whatever host you plan to use'''
+you will need to modify line 17 and 57 (will change if you add/remove subreddits) for whatever host you plan to use'''
